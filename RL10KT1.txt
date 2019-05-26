@@ -1,0 +1,11 @@
+redis.clients.jedis.exceptions.JedisNoReachableClusterNodeException: No reachable node in cluster
+	at redis.clients.jedis.JedisSlotBasedConnectionHandler.getConnection(JedisSlotBasedConnectionHandler.java:57)
+	at redis.clients.jedis.JedisSlotBasedConnectionHandler.getConnectionFromSlot(JedisSlotBasedConnectionHandler.java:74)
+	at redis.clients.jedis.JedisClusterCommand.runWithRetries(JedisClusterCommand.java:116)
+	at redis.clients.jedis.JedisClusterCommand.run(JedisClusterCommand.java:31)
+	at redis.clients.jedis.JedisCluster.hmset(JedisCluster.java:424)
+	at com.yahoo.ycsb.db.RedisClient.insert(RedisClient.java:152)
+	at com.yahoo.ycsb.DBWrapper.insert(DBWrapper.java:221)
+	at com.yahoo.ycsb.workloads.CoreWorkload.doInsert(CoreWorkload.java:601)
+	at com.yahoo.ycsb.ClientThread.run(ClientThread.java:118)
+	at java.lang.Thread.run(Thread.java:748)

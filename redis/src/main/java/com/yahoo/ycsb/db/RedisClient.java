@@ -1,18 +1,28 @@
 /**
  * Copyright (c) 2012 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
  * implied. See the License for the specific language governing
  * permissions and limitations under the License. See accompanying
  * LICENSE file.
+ * <p>
+ * Redis client binding for YCSB.
+ * <p>
+ * All YCSB records are mapped to a Redis *hash field*.  For scanning
+ * operations, all keys are saved (by an arbitrary hash) in a sorted set.
+ * <p>
+ * Redis client binding for YCSB.
+ * <p>
+ * All YCSB records are mapped to a Redis *hash field*.  For scanning
+ * operations, all keys are saved (by an arbitrary hash) in a sorted set.
  */
 
 /**
@@ -29,18 +39,14 @@ import com.yahoo.ycsb.DB;
 import com.yahoo.ycsb.DBException;
 import com.yahoo.ycsb.Status;
 import com.yahoo.ycsb.StringByteIterator;
-import redis.clients.jedis.BasicCommands;
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisCommands;
-import redis.clients.jedis.Protocol;
+import redis.clients.jedis.*;
+
+import java.util.HashSet;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -76,14 +82,21 @@ public class RedisClient extends DB {
     String host = props.getProperty(HOST_PROPERTY);
 
     boolean clusterEnabled = Boolean.parseBoolean(props.getProperty(CLUSTER_PROPERTY));
-    if (clusterEnabled) {
-      Set<HostAndPort> jedisClusterNodes = new HashSet<>();
-      jedisClusterNodes.add(new HostAndPort(host, port));
-      jedis = new JedisCluster(jedisClusterNodes);
-    } else {
-      jedis = new Jedis(host, port);
-      ((Jedis) jedis).connect();
-    }
+//    if (clusterEnabled) {
+    Set<HostAndPort> jedisClusterNodes = new HashSet<HostAndPort>();
+//Jedis Cluster will attempt to discover cluster nodes automatically
+    jedisClusterNodes.add(new HostAndPort("172.31.46.2", 6379));
+    jedisClusterNodes.add(new HostAndPort("172.31.41.77", 6379));
+    jedisClusterNodes.add(new HostAndPort("172.31.33.10", 6379));
+
+
+
+    jedis = new JedisCluster(jedisClusterNodes);
+//    }
+//    else {
+//      jedis = new Jedis(host, port);
+//      ((Jedis) jedis).connect();
+//    }
 
     String password = props.getProperty(PASSWORD_PROPERTY);
     if (password != null) {
@@ -92,11 +105,11 @@ public class RedisClient extends DB {
   }
 
   public void cleanup() throws DBException {
-    try {
-      ((Closeable) jedis).close();
-    } catch (IOException e) {
-      throw new DBException("Closing connection failed.");
-    }
+    //try {
+    //((Closeable) jedis).close();
+    //} catch (IOException e) {
+    //throw new DBException("Closing connection failed.");
+    //}
   }
 
   /*
@@ -113,7 +126,7 @@ public class RedisClient extends DB {
 
   @Override
   public Status read(String table, String key, Set<String> fields,
-      Map<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     if (fields == null) {
       StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
     } else {
@@ -135,7 +148,7 @@ public class RedisClient extends DB {
 
   @Override
   public Status insert(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     if (jedis.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK")) {
       jedis.zadd(INDEX_KEY, hash(key), key);
@@ -152,14 +165,14 @@ public class RedisClient extends DB {
 
   @Override
   public Status update(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     return jedis.hmset(key, StringByteIterator.getStringMap(values))
         .equals("OK") ? Status.OK : Status.ERROR;
   }
 
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     Set<String> keys = jedis.zrangeByScore(INDEX_KEY, hash(startkey),
         Double.POSITIVE_INFINITY, 0, recordcount);
 
